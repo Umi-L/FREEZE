@@ -22,10 +22,11 @@ struct Vector2{
 
 #[derive(Component)]
 struct AABB{
-    x1: f32,
-    y1: f32,
-    x2: f32,
-    y2: f32
+    x: f32,
+    y: f32,
+    
+    width: f32,
+    height: f32
 }
 
 fn main() {
@@ -52,20 +53,20 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             gravity: 0.5,
 
             collider: AABB{
-                x1: 0.0,
-                y1: 0.0,
-                x2: 1.0,
-                y2: 1.0,
+                x: 0.0,
+                y: 0.0,
+                width: 10.0,
+                height: 10.0
             }
         }
     });
 
     commands.spawn().insert(AABB{
-        x1: -100.0,
-        x2: 100.0,
-
-        y1: -1.0,
-        y2: -5.0
+        x: -100.0,
+        y: -1.0,
+        
+        width: 100.0,
+        height: 1.0
     });
     
 }
@@ -83,37 +84,44 @@ fn player_movement(
             player.physics.velocity.x += player.speed;
         }
 
-        //apply movement
-        transform.translation.x += player.physics.velocity.x;
-        transform.translation.y += player.physics.velocity.y;
-
         //apply friction
         player.physics.velocity.x *= player.physics.friction; 
 
         //apply gravity
         player.physics.velocity.y -= player.physics.gravity;
+
+        //move player
+        apply_forces(&mut player.physics);
     }
 }
 
 //applies forces to a physics object
 fn apply_forces(
-    force: Vector2, 
     object: &mut PhysicsObject,
-    mut query: Query<&AABB>
+    query: Query<&AABB>
 ){
-    //itterate thru all bounding boxes
-    for mut bounds in query.iter() {
+    //velocity is the ammount moved per frame, but we want to check steps instead of moving all at once to have a cleaner collision.
 
-        if bounds == object.collider{
-            continue;
-        }
+    //get the amount of steps needed to move the object
+    let steps: i32 = object.velocity.y.floor() as i32;
 
-        if aabb_collision(bounds, object.collider){
-            
+    for _ in 0..steps {
+
+        //itterate thru all bounding boxes
+        for bounds in query.iter() {
+
+            //if references are the same, skip
+            if bounds as *const _ == &object.collider as *const _ {
+                continue;
+            }
+
+            if aabb_collision(bounds, &object.collider){
+                object.velocity.y = 0.0;
+            }
         }
     }
 }
 
-fn aabb_collision(box1: AABB, box2: AABB) -> bool {
-    false
+fn aabb_collision(r1: &AABB, r2: &AABB) -> bool {
+    return r1.x <= (r2.x + r2.width) && (r1.x + r1.width) >= r2.x && r1.y <= (r2.y + r2.height) && (r1.y + r1.height) >= r2.y;
 }
