@@ -98,7 +98,6 @@ fn player_movement(
 //applies forces to a physics object
 fn apply_forces(
     object: &mut PhysicsObject,
-    query: Query<&AABB>
 ){
     //velocity is the ammount moved per frame, but we want to check steps instead of moving all at once to have a cleaner collision.
 
